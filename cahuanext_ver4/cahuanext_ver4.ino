@@ -226,6 +226,7 @@ void setup() {
   lcd.print("                ");
   if_freq = 2000000;           // FRECUENCIA DEL FILTRO fi
   add_if = false;              
+  Mode = MODE_LSB;
   mode= "LSB";
     //
   //mode = vfo_mode(initial_band);
@@ -250,14 +251,9 @@ void loop()
     add_if = false;
     lcd.setCursor(0, 0);
     lcd.print("LSB");
+    Mode = MODE_LSB;
     mode= "LSB";
     //mode = vfo_mode(band);
-    /*if (band == initial_band) {
-      rx = initial_rx;
-    } else {
-      rx =7100000;
-    }
-    */
     rx =7100000;
     }
   
@@ -271,6 +267,7 @@ void loop()
     lcd.setCursor(0, 0);
     lcd.print("LSB");
     mode= "LSB";
+    Mode = MODE_LSB;
     //mode = vfo_mode(band);
     rx =10100000;
     }
@@ -285,6 +282,7 @@ void loop()
     lcd.setCursor(0, 0);
     lcd.print("LSB");
     mode= "LSB";
+    Mode = MODE_LSB;
     //mode = vfo_mode(band);
     rx =14100000;
     }
@@ -324,12 +322,14 @@ void loop()
     {
     if (mode == "USB") 
       { 
+      Mode = MODE_LSB;
       mode = "LSB";
       if_freq = 2000000;
       add_if = false;
       }
     else if (mode == "LSB") 
       {
+      Mode = MODE_USB;
       mode = "USB";
       if_freq = 2000000;
       add_if = true;
