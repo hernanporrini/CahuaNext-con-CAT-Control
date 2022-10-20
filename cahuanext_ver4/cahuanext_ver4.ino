@@ -43,6 +43,8 @@
 
 // https://github.com/kk4das/IC746CAT
 #include "lib/IC746.h"
+#include "lib/IC746.cpp"
+
 IC746 radio = IC746();
 
 // radio modes
@@ -65,6 +67,7 @@ ClickButton step_button(53, LOW, CLICKBTN_PULLUP);
 #include "ad9850.h"
 #include "smeter.h"
 #include "rotary.h"
+
 // function to run when we must put radio on TX/RX
 void catSetPtt(boolean catPTT) {
   // the var ptt follows the value passed, but you can do a few more thing here
@@ -83,47 +86,52 @@ boolean catGetPtt() {
 }
 
 // function to set a freq from CAT
-void catSetFreq(long f) {
-  // the var freq follows the value passed, but you can do a few more thing here
+void catSetFreq(long f) 
+  {
   rx = f;
-
-}
+  }
 
 // function to set the mode from the cat command
-void catSetMode(byte m) {
-  if (m == CAT_MODE_LSB) {
+void catSetMode(byte m) 
+  {
+  if (m == CAT_MODE_LSB) 
+    {
+    mode = "LSB";
     Mode = MODE_LSB;
-  } else {
+    } 
+  else 
+    {
+    mode = "USB";
     Mode = MODE_USB;
+    }
   }
-
-}
 
 // function to pass the freq to the cat library
-long catGetFreq() {
-  // this must return the freq as an unsigned long in Hz, you must prepare it before
+long catGetFreq() 
+  {
   long f;
-
   f = rx;
   return f;
-}
+  }
 
 // function to pass the mode to the cat library
-byte catGetMode() {
-  // this must return the mode in the wat the CAT protocol expect it
+byte catGetMode() 
+  {
   byte catMode;
-
-
-  if (Mode == MODE_LSB) {
+  if (mode == "LSB") 
+    {
     catMode = CAT_MODE_LSB;
-  } else {
+    } 
+  else 
+    {
     catMode = CAT_MODE_USB;
-  }
+    }
   return catMode;
-}
+  }
 
 void setup() {
   lcd.begin(16, 2);
+  
   radio.addCATPtt(catSetPtt);
   radio.addCATFSet(catSetFreq);
   radio.addCATMSet(catSetMode);
@@ -183,14 +191,14 @@ void setup() {
   pulse_high(FQ_UD);
 
   /*
-     Configuramos tres entradas con pull-up para
-     el cambio de banda. Como estamos utilizando
-     una única llave para las 3 bandas, utilizamos
-     3 pines diferentes de manera digital.
+     Configuramos tres salidas para
+     el cambio de banda por relay.
   */
-  pinMode(A3, INPUT_PULLUP); // banda 40m
-  pinMode(A4, INPUT_PULLUP); // banda 30m
-  pinMode(A5, INPUT_PULLUP); // banda 20m
+  pinMode(30, INPUT_PULLUPS); // entrada de MICPTT
+  pinMode(40, OUTPUT); // RELAY PTT
+  pinMode(41, OUTPUT); // RELAY banda 40m
+  pinMode(42, OUTPUT); // RELAY banda 30m
+  pinMode(43, OUTPUT); // RELAY banda 20m
 
   /*
      El código contempla el uso de la memoria EEPROM del
@@ -226,13 +234,18 @@ void setup() {
   increment=1000;
 }
 
-void loop() {
+void loop() 
+  {
   /* El cambio de banda se realiza con una llave
       giratoria que pone a masa una de las tres
       entradas por vez.
   */
   radio.check();
-  if (digitalRead(A3) == LOW && band != 40) {
+  
+  if (6500000<rx<7500000 && band != 40) {
+    digitalWrite(41, HIGH);
+    digitalWrite(42, LOW);
+    digitalWrite(43, LOW);
     band = 40;
     add_if = false;
     lcd.setCursor(0, 0);
@@ -246,48 +259,47 @@ void loop() {
     }
     */
     rx =7100000;
-  }
-  if (digitalRead(A4) == LOW && band != 30) {
+    }
+  
+  if (9500000<rx<10500000 && band != 30) 
+    {
+    digitalWrite(41, LOW);
+    digitalWrite(42, HIGH);
+    digitalWrite(43, LOW);
     band = 30;
     add_if = false;
     lcd.setCursor(0, 0);
     lcd.print("LSB");
     mode= "LSB";
     //mode = vfo_mode(band);
-    /*if (band == initial_band) {
-      rx = initial_rx;
-    } else {
-      rx = 10100000;
-    }
-    */
     rx =10100000;
-  }
-  if (digitalRead(A5) == LOW && band != 20) {
+    }
+  
+  if (13500000<rx<14500000 && band != 20) 
+    {
+    digitalWrite(41, LOW);
+    digitalWrite(42, LOW);
+    digitalWrite(43, HIGH);
     band = 20;
     add_if = false;
     lcd.setCursor(0, 0);
     lcd.print("LSB");
     mode= "LSB";
     //mode = vfo_mode(band);
-    /*if (band == initial_band) {
-      rx = initial_rx;
-    } else {
-      rx = 14100000;
-    }
-    */
     rx =14100000;
-  }
+    }
 
   /*
      Si la frecuencia mostrada es diferente a la frecuencia que
      obtengo al tocar el encoder, la actualizo tanto en la
      pantalla como en el DDS AD9850.
   */
-  if (rx != rx2) {
+  if (rx != rx2) 
+    {
     show_freq();
     send_frequency(rx);
     rx2 = rx;
-  }
+    }
 
   /*
      step_button es el botón del encoder rotativo. Con un click
@@ -296,82 +308,89 @@ void loop() {
      decremento. Con un click largo cambia entre los modos USB y LSB  
   */
   step_button.Update();
-  if (step_button.clicks != 0) step_button_status = step_button.clicks;
-  if (step_button.clicks == 1) {
+  if (step_button.clicks != 0) 
+    {
+    step_button_status = step_button.clicks;
+    }
+  if (step_button.clicks == 1) 
+    {
     set_increment();
-  }
-  if (step_button.clicks == 2) {
+    }
+  if (step_button.clicks == 2) 
+    {
     set_decrement();
-  }
-  if (step_button.clicks == -1) {
-    if (mode == "USB") { 
+    }
+  if (step_button.clicks == -1) 
+    {
+    if (mode == "USB") 
+      { 
       mode = "LSB";
       if_freq = 2000000;
       add_if = false;
-    }
-    else if (mode == "LSB") {
+      }
+    else if (mode == "LSB") 
+      {
       mode = "USB";
       if_freq = 2000000;
       add_if = true;
-    }
+      }
     lcd.setCursor(0, 0);
     lcd.print(mode);
-  }
+    }
 
   /*
      Luego de sintonizar una frecuencia, si pasaron mas de dos
      segundos la misma se almacena en la memoria EEPROM.
   */
-  if (!mem_saved) {
-    if (time_passed + 2000 < millis()) {
+  if (!mem_saved) 
+    {
+    if (time_passed + 2000 < millis()) 
+      {
       store_memory();
+      }
     }
-  }
 
   /*
      send_Frequency envía la señal al AD9850.
   */
   //send_frequency(rx);
   if(mode == "LSB")
-  {
+    {
     send_frequency(rx+180);                     //COMPENSACION DE FRECUENCIA, EXISTE UN ERROR ENTRE LA FRECUENCIA DESEADA(DISPLAY) Y LA GENERADA
-  }
-  else   if(mode == "USB")
-  {
+    }
+    else   if(mode == "USB")
+    {
     send_frequency(rx+320);
-  }
-  /*
-     El S-meter funciona tanto para transmisión (modulación)
-     como para recepción (RF). La forma de cambio es sensando
-     el nivel de señal del AGC (A1), que es la entrada de señal de RF.
-     Si la señal de RF del AGC en A1 es menor a 90 entonces estamos en
-     transmisión y en el display mostramos la intensidad de la entrada A2 en el S-meter.
-     Caso contrario se mostrará la señal de recepción.
-  */
+    }
+ 
   if (millis() < lastT)
     return;
   lastT += T_REFRESH;
+   /*
+     El S-meter funciona tanto para transmisión (MOD) como para recepción (AGC). 
+     La señal del AGC se lee por (A1).
+     La señal del MOD se lee por (A2).
+     
+  */
+  
+  ptt=!digitalRead(30); //se lee el estado del PTTMIC y se guarda en la variable ptt
+  
   if (ptt) {
+    digitalWrite(40, HIGH);
+    lcd.setCursor(4, 0);
+    lcd.print("TX");
     smeter_signal = map(sqrt(analogRead(A2) * 16), 0, 128, 0, 80);
     smeter(1, smeter_signal);
-    
-  } else {
+    } 
+    else 
+    {
+    digitalWrite(40, LOW);
+    lcd.setCursor(4, 0);
+    lcd.print("RX");
     smeter_signal = map(sqrt(analogRead(A1) * 16), 40, 128, 0, 100);
     smeter(1, smeter_signal);
-    
-    
-  }
-  if (ptt) 
-    {
-      lcd.setCursor(4, 0);
-      lcd.print("TX");
     }
-    else
-    {
-      lcd.setCursor(4, 0);
-      lcd.print("RX");
-    }
-
+  
 }
 
 /*
@@ -380,8 +399,10 @@ void loop() {
    vez que se llama a la función set_increment()
    ésta prepara automáticamente el próximo valor.
 */
-void set_increment() {
-  switch (increment) {
+void set_increment() 
+  {
+  switch (increment) 
+    {
     case 1:
       increment = 10;
       hertz = "  10 Hz";
@@ -402,21 +423,19 @@ void set_increment() {
       hertz = " 10 kHz";
       hertz_position = 10;
       break;
-  
-    
-  }
-
+    }
   lcd.setCursor(3, 0);
   lcd.print("             ");
   lcd.setCursor(6, 0);
   lcd.print(hertz);
   delay(1000);
   show_freq();
-}
+  }
 
-void set_decrement() {
-  switch (increment) {
-    
+void set_decrement() 
+  {
+  switch (increment) 
+    {
     case 100000:
       increment = 10000;
       hertz = " 10 kHz";
@@ -442,29 +461,31 @@ void set_decrement() {
       hertz = "   1 Hz";
       hertz_position = 11;
       break;
-    
-  }
-
+    }
   lcd.setCursor(3, 0);
   lcd.print("             ");
   lcd.setCursor(6, 0);
   lcd.print(hertz);
   delay(1000);
   show_freq();
-}
+  }
 
 /*
    Ésta función se encarga de mostrar la frecuencia
    en pantalla.
 */
-void show_freq() {
+void show_freq() 
+  {
   lcd.setCursor(3, 0);
   lcd.print("             ");
-  if (rx < 10000000) {
+  if (rx < 10000000) 
+    {
     lcd.setCursor(7, 0);
-  } else {
+    } 
+    else 
+    {
     lcd.setCursor(6, 0);
-  }
+    }
   lcd.print(rx / 1000000);
   lcd.print(".");
   lcd.print((rx / 100000) % 10);
@@ -474,48 +495,19 @@ void show_freq() {
   lcd.print((rx / 100) % 10);
   lcd.print((rx / 10) % 10);
   lcd.print((rx / 1) % 10);
-
-
   time_passed = millis();
   mem_saved = false; // Triggerea el guardado en memoria
-}
+  }
 
 /*
    store_memory() guarda la frecuencia elegida en la memoria
    EEPROM cada vez que se llama.
 */
-void store_memory() {
+void store_memory() 
+  {
   EEPROM.write(0, true);
   EEPROM.write(1, band);
   EEPROM.writeLong(2, rx);
   mem_saved = true;
- 
-}
-
-/*
-   vfo_mode devuelve el modo en el que se configuró
-   el DDS, dependiendo de la banda elegida.
-
-String vfo_mode (int initial_band) {
-  if_freq = 2000000;
-  lcd.setCursor(0, 0);
-  switch (initial_band) {
-    case 40:
-      add_if = false;
-      lcd.print("LSB");
-      return "LSB";
-      break;
-    case 30:
-      add_if = false;
-      lcd.print("LSB");
-      return "LSB";
-      break;
-    case 20:
-      add_if = true;
-      lcd.print("LSB");
-      return "LSB";
-      break;
-   
   }
-}
-*/
+
