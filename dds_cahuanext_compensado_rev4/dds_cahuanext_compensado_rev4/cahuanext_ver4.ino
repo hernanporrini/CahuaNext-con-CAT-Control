@@ -1,7 +1,8 @@
   /* 
-  CAHUANEXT VER3.0 LW1EHP (HERNAN ROBERTO PORRINI)
+  CAHUANEXT VER4.0 LW1EHP (HERNAN ROBERTO PORRINI)
+  se incorporo la funcionalidad de CAT (Icom IC746)
   --------------------------------------------------------------------
-              OLAVARRIA 12/09/2022
+              OLAVARRIA 20/10/2022
       --------------------------------------------------------------------
   ESTE DISEÑO ESTA CONSTRUIDO EN BASE AL TRABAJO ORIGINAL DE: @REYNICO   
   LINK DEL PROYECTO: https://github.com/reynico/arduino-dds
@@ -40,8 +41,8 @@
 #include "lib/ClickButton.h"
 #include "lib/ClickButton.cpp"
 
-
-#include <IC746.h>
+// https://github.com/kk4das/IC746CAT
+#include "lib/IC746.h"
 IC746 radio = IC746();
 
 // radio modes
