@@ -1,7 +1,7 @@
 /*
  * Pines a usar para CLK y DT del encoder rotativo
  */
-Rotary r = Rotary(12, 13);
+Rotary r = Rotary(ROTARY_BAJAR, ROTARY_SUBIR);
 
 /*
  * Rutina del encoder
