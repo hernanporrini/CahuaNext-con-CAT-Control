@@ -2,7 +2,7 @@
   CAHUANEXT VER4.0 LW1EHP (HERNAN ROBERTO PORRINI)
   se incorporo la funcionalidad de CAT (Icom IC746)
   --------------------------------------------------------------------
-              OLAVARRIA 20/10/2022
+              OLAVARRIA 21/10/2022
       --------------------------------------------------------------------
   ESTE DISEÑO ESTA CONSTRUIDO EN BASE AL TRABAJO ORIGINAL DE: @REYNICO   
   LINK DEL PROYECTO: https://github.com/reynico/arduino-dds
@@ -12,7 +12,7 @@
   SOFTWARE DE CONTROL PARA UN DDS EN CAHUANE FR-300 DE 3 CANALES
   BANDAS DE OPERACION: 40-30-20 METROS
   MODOS: USB(bls) y LSB(bli)
-  PASOS: 10KHz, 1KHz, 100Hz Y 10 Hz
+  PASOS: 10KHz, 1KHz, 100Hz, 10Hz Y 1 Hz
   INDICACION DE RX-METER (señal AGC) 
   INDICACION DE TX-METER (señal MOD) 
   MODULO DDS: AD9850
@@ -43,9 +43,25 @@
 
 // https://github.com/kk4das/IC746CAT
 #include <IC746.h>
-//#include "lib/IC746.cpp"
 
 IC746 radio = IC746();
+
+// definicion de pines de entrada salida
+#define PTT_MIC   30
+#define RELAY_PTT 40
+#define RELAY_40  41
+#define RELAY_30  42
+#define RELAY_20  43
+#define RS        8
+#define EN        9
+#define D4        4
+#define D5        5
+#define D6        6
+#define D7        7
+#define ROTARY_PULSADOR 53
+#define ROTARY_SUBIR    12
+#define ROTARY_BAJAR    13
+
 
 // radio modes
 #define MODE_LSB 00
@@ -57,11 +73,11 @@ byte Mode = MODE_USB;
 byte ptt = PTT_RX;
 
 // Pantalla LCD
-LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
 // Libreria ClickButton
 int step_button_status = 0;
-ClickButton step_button(53, LOW, CLICKBTN_PULLUP);
+ClickButton step_button(ROTARY_PULSADOR, LOW, CLICKBTN_PULLUP);
 
 #include "common.h"
 #include "ad9850.h"
@@ -73,18 +89,28 @@ ClickButton step_button(53, LOW, CLICKBTN_PULLUP);
 void catSetPtt(boolean catPTT) {
   // the var ptt follows the value passed, but you can do a few more thing here
   if (catPTT) 
-    {ptt = PTT_TX;} 
+    {
+    ptt_mic_habilitado = false;
+    ptt = PTT_TX;
+    } 
   else 
-    {ptt = PTT_RX;}
-}
-
-boolean catGetPtt() {
-  if (ptt == PTT_TX) {
-    return true;
-  } else {
-    return false;
+    {
+    ptt_mic_habilitado = true;
+    ptt = PTT_RX;
+    }
   }
-}
+
+boolean catGetPtt() 
+  {
+  if (ptt == PTT_TX) 
+    {
+    return true;
+    } 
+    else 
+    {
+    return false;
+    }
+  }
 
 // function to set a freq from CAT
 void catSetFreq(long f) 
@@ -199,11 +225,11 @@ void setup() {
      Configuramos tres salidas para
      el cambio de banda por relay.
   */
-  pinMode(39, INPUT); // entrada de MICPTT
-  pinMode(40, OUTPUT); // RELAY PTT
-  pinMode(41, OUTPUT); // RELAY banda 40m
-  pinMode(42, OUTPUT); // RELAY banda 30m
-  pinMode(43, OUTPUT); // RELAY banda 20m
+  pinMode(PTT_MIC, INPUT); // entrada de MICPTT
+  pinMode(RELAY_PTT, OUTPUT); // RELAY PTT
+  pinMode(RELAY_40, OUTPUT); // RELAY banda 40m
+  pinMode(RELAY_30, OUTPUT); // RELAY banda 30m
+  pinMode(RELAY_20, OUTPUT); // RELAY banda 20m
 
   /*
      El código contempla el uso de la memoria EEPROM del
@@ -232,64 +258,36 @@ void setup() {
   if_freq = 2000000;           // FRECUENCIA DEL FILTRO fi
   add_if = false;              
   Mode = MODE_LSB;
-  mode= "LSB";
-    //
-  //mode = vfo_mode(initial_band);
-  lcd.setCursor(0, 0);
-  lcd.print(mode);
   increment=1000;
 }
 
 void loop() 
   {
-  /* El cambio de banda se realiza con una llave
-      giratoria que pone a masa una de las tres
-      entradas por vez.
-  */
+
   radio.check();
   
-  if (6500000<rx<7500000 && band != 40) {
-    digitalWrite(41, HIGH);
-    digitalWrite(42, LOW);
-    digitalWrite(43, LOW);
+  if (6500000<rx<7500000 && band != 40) 
+    {
+    digitalWrite(RELAY_40, HIGH);
+    digitalWrite(RELAY_30, LOW);
+    digitalWrite(RELAY_20, LOW);
     band = 40;
-    //add_if = false;
-    //lcd.setCursor(0, 0);
-    //lcd.print("LSB");
-    //Mode = MODE_LSB;
-    //mode= "LSB";
-    //mode = vfo_mode(band);
-    //rx =7100000;
     }
   
   if (9500000<rx<10500000 && band != 30) 
     {
-    digitalWrite(41, LOW);
-    digitalWrite(42, HIGH);
-    digitalWrite(43, LOW);
+    digitalWrite(RELAY_40, LOW);
+    digitalWrite(RELAY_30, HIGH);
+    digitalWrite(RELAY_20, LOW);
     band = 30;
-    //add_if = false;
-    //lcd.setCursor(0, 0);
-    //lcd.print("LSB");
-    //mode= "LSB";
-    //Mode = MODE_LSB;
-    //mode = vfo_mode(band);
-    //rx =10100000;
     }
   
   if (13500000<rx<14500000 && band != 20) 
     {
-    digitalWrite(41, LOW);
-    digitalWrite(42, LOW);
-    digitalWrite(43, HIGH);
+    digitalWrite(RELAY_40, LOW);
+    digitalWrite(RELAY_30, LOW);
+    digitalWrite(RELAY_20, HIGH);
     band = 20;
-    //add_if = false;
-    //lcd.setCursor(0, 0);
-    //lcd.print("LSB");
-    //mode= "LSB";
-    //Mode = MODE_LSB;
-    //mode = vfo_mode(band);
-    //rx =14100000;
     }
 
   /*
@@ -325,22 +323,16 @@ void loop()
     }
   if (step_button.clicks == -1) 
     {
-    if (mode == "USB") 
+    if (Mode == MODE_USB) 
       { 
       Mode = MODE_LSB;
-      mode = "LSB";
-      if_freq = 2000000;
       add_if = false;
       }
-    else if (mode == "LSB") 
+    else if (Mode == MODE_LSB) 
       {
       Mode = MODE_USB;
-      mode = "USB";
-      if_freq = 2000000;
       add_if = true;
       }
-    lcd.setCursor(0, 0);
-    lcd.print(mode);
     }
 
   /*
@@ -355,10 +347,8 @@ void loop()
       }
     }
 
-  /*
-     send_Frequency envía la señal al AD9850.
-  */
-  //send_frequency(rx);
+
+  //send_Frequency envía la señal al AD9850
   if(mode == "LSB")
     {
     send_frequency(rx+180);                     //COMPENSACION DE FRECUENCIA, EXISTE UN ERROR ENTRE LA FRECUENCIA DESEADA(DISPLAY) Y LA GENERADA
@@ -371,28 +361,26 @@ void loop()
   if (millis() < lastT)
     return;
   lastT += T_REFRESH;
-   /*
-     El S-meter funciona tanto para transmisión (MOD) como para recepción (AGC). 
-     La señal del AGC se lee por (A1).
-     La señal del MOD se lee por (A2).
-     
-  */
+    
+  if(ptt_mic_habilitado); //si el ptt del mic esta habilitado por CATSETPTT, el estado del ptt depende de PTT_MIC
+    {
+    ptt=!digitalRead(30); //se lee el estado del PTTMIC y se guarda en la variable ptt
+    }
   
-  //ptt=!digitalRead(30); //se lee el estado del PTTMIC y se guarda en la variable ptt
-  
-  if (ptt) {
-    digitalWrite(40, HIGH);
+  if (ptt) 
+    {
+    digitalWrite(RELAY_PTT, HIGH); //El S-meter funciona tanto para transmisión (MOD) como para recepción (AGC). 
     lcd.setCursor(4, 0);
     lcd.print("TX");
-    smeter_signal = map(sqrt(analogRead(A2) * 16), 0, 128, 0, 80);
+    smeter_signal = map(sqrt(analogRead(A2) * 16), 0, 128, 0, 80); //La señal del AGC se lee por (A1). 
     smeter(1, smeter_signal);
     } 
     else 
     {
-    digitalWrite(40, LOW);
+    digitalWrite(RELAY_PTT, LOW);  //El S-meter funciona tanto para transmisión (MOD) como para recepción (AGC). 
     lcd.setCursor(4, 0);
     lcd.print("RX");
-    smeter_signal = map(sqrt(analogRead(A1) * 16), 40, 128, 0, 100);
+    smeter_signal = map(sqrt(analogRead(A1) * 16), 40, 128, 0, 100); //La señal del MOD se lee por (A2).
     smeter(1, smeter_signal);
     }
   
@@ -481,6 +469,9 @@ void set_decrement()
 */
 void show_freq() 
   {
+  lcd.setCursor(0, 0);
+  if(Mode==MODE_LSB) lcd.print("LSB");
+  if(Mode==MODE_USB) lcd.print("USB");
   lcd.setCursor(3, 0);
   lcd.print("             ");
   if (rx < 10000000) 
